@@ -18,7 +18,7 @@ SYSTEM_PROMPT = os.getenv(
     "คุณคือผู้ช่วย AI ที่เป็นมิตร ตอบเป็นภาษาไทย สั้นกระชับ",
 )
 MAX_HISTORY = int(os.getenv("MAX_HISTORY", "10"))
-TRIGGER_MODE = os.getenv("TRIGGER_MODE", "mention").lower()
+TRIGGER_MODE = os.getenv("TRIGGER_MODE", "slash").lower()
 ALLOWED_CHANNELS = {
     int(c.strip())
     for c in os.getenv("ALLOWED_CHANNELS", "").split(",")
@@ -43,8 +43,9 @@ safety_settings = {
     "HARM_CATEGORY_SEXUALLY_EXPLICIT": "BLOCK_ONLY_HIGH",
     "HARM_CATEGORY_DANGEROUS_CONTENT": "BLOCK_ONLY_HIGH",
 }
+MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash-latest",
+    model_name=MODEL_NAME,
     system_instruction=SYSTEM_PROMPT,
     generation_config=generation_config,
     safety_settings=safety_settings,
@@ -164,7 +165,7 @@ async def process_ai_response(
 @bot.event
 async def on_ready():
     print(f"✅ Logged in as {bot.user} (ID: {bot.user.id})")
-    print(f"🤖 Model: gemini-1.5-flash | History: {MAX_HISTORY} turns | Mode: {TRIGGER_MODE}")
+    print(f"🤖 Model: {MODEL_NAME} | History: {MAX_HISTORY} turns | Mode: {TRIGGER_MODE}")
     try:
         await tree.sync()
         print("🔧 Slash Commands Synced")
@@ -179,6 +180,9 @@ async def on_message(message: discord.Message):
         return
 
     await bot.process_commands(message)
+
+    if TRIGGER_MODE == "slash":
+        return
 
     is_mention = bot.user.mentioned_in(message)
     is_reply = (
@@ -232,7 +236,7 @@ async def reset_slash(interaction: discord.Interaction):
 @app_commands.default_permissions(administrator=True)
 async def config_slash(interaction: discord.Interaction):
     embed = discord.Embed(title="⚙️ Bot Config", color=0x00ff88)
-    embed.add_field(name="Model", value="gemini-1.5-flash-latest", inline=True)
+    embed.add_field(name="Model", value=MODEL_NAME, inline=True)
     embed.add_field(name="Max History", value=f"{MAX_HISTORY} turns", inline=True)
     embed.add_field(name="Trigger Mode", value=TRIGGER_MODE, inline=True)
     embed.add_field(
